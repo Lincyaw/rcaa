@@ -52,16 +52,12 @@ operators:
   - use: rca.protocol
   - use: rca.data_coverage
   - use: rca.submission
-  - use: rca.hypothesis
-    call: rca_judge
-  - use: rca.evidence_use
-    call: rca_judge
-  - use: rca.fault_kind
-    call: rca_judge
-  - use: rca.multi_fault
-    call: rca_judge
-  - use: rca.miss_reason
-    call: rca_judge
+  - use: rca.final_answer
+    call: rca_extract
+  - use: rca.stated_suspects
+    call: rca_extract
+  - use: rca.stated_observations
+    call: rca_extract
   - use: meta.fields
     as: cost
     params:
@@ -72,7 +68,7 @@ operators:
         elapsed_s: {key: elapsed_s, type: scalar}
 
 calls:
-  rca_judge:
+  rca_extract:
     evidence: true
 
 render:
