@@ -84,7 +84,7 @@ engine:
   model: DeepSeek-V4-flash
   provider: litellm
   reasoning_effort: null
-  env_passthrough: [LITELLM_API_KEY]
+  env_passthrough: [LITELLM_API_KEY, LITELLM_BASE_URL]
   patches: [engine/litellm.patch.yml]
 
 extract:

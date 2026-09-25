@@ -1,4 +1,5 @@
 # An OpenAI-compatible route to the LiteLLM proxy, configured on the sdk profile's llm-pi-ai row.
+# The endpoint and key come from LITELLM_BASE_URL and LITELLM_API_KEY, passed through engine.env_passthrough.
 - id: llm-pi-ai
   config:
     providers:
@@ -6,7 +7,7 @@
         displayName: LiteLLM proxy
         apiKeyEnv: LITELLM_API_KEY
         api: openai-completions
-        baseURL: http://101.126.39.61:8088/v1
+        baseURL: !!js process.env.LITELLM_BASE_URL
         models:
           - id: DeepSeek-V4-flash
             contextWindow: 262144
