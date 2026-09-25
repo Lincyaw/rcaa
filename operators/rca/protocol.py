@@ -6,7 +6,7 @@ from typing import Any
 from traj_analyzer.operators.base import FeatureSpec, NoParams, Operator
 from traj_analyzer.schema import Trajectory
 
-from rca._parse import QUERY, calls
+from rca._parse import FORCE_SUBMIT, QUERY, calls
 
 
 def outputs(params: NoParams) -> list[FeatureSpec]:
@@ -39,8 +39,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "think_distinct_ratio": len({c.step.content for c in thinks}) / len(thinks) if thinks else None,
         "think_only_turn_share": sum(1 for names in turns.values() if set(names) == {"think_tool"}) / len(turns)
         if turns else None,
-        "force_submitted": any(s.role == "system" and s.content.startswith("[force_submit]")
-                               for s in trajectory.steps),
+        "force_submitted": any(s.name == FORCE_SUBMIT for s in trajectory.steps),
         "submit_with_other_calls": any(len(names) > 1 for names in submit_turns),
     }
 

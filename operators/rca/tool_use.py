@@ -7,7 +7,7 @@ from typing import Any
 from traj_analyzer.operators.base import FeatureSpec, NoParams, Operator
 from traj_analyzer.schema import Trajectory
 
-from rca._parse import QUERY, STORED_RESULT_CUT, TOOLS, calls, error_kind, normalize_sql
+from rca._parse import QUERY, STORED_CUT_MARKER, TOOLS, calls, error_kind, normalize_sql
 
 ERROR_LABELS = {
     "token_budget": "The result was larger than the token budget and was replaced by an error.",
@@ -65,8 +65,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     for query in succeeded:
         assert query.result is not None
         text = query.result.content.strip()
-        # Stored results are cut at STORED_RESULT_CUT characters, so only results shorter than that are counted.
-        if "limit" not in query.args and text.startswith("[") and len(text) < STORED_RESULT_CUT:
+        if "limit" not in query.args and text.startswith("[") and not text.endswith(STORED_CUT_MARKER.strip()):
             truncated += len(json.loads(text)) == 10
     return {
         "n_turns": float(max(per_turn) + 1 if per_turn else 0),

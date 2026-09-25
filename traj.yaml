@@ -8,6 +8,17 @@ datasets:
     input: [data/eval.db]
     options:
       experiments: [ops-lite]
+    description: |
+      This trajectory is an LLM agent doing root cause analysis (RCA) of a microservice incident.
+      The agent queries telemetry parquet files (abnormal_* for the incident window, normal_* for a baseline window) with DuckDB SQL through query_parquet_files, may record reasoning with think_tool, and ends with submit_findings.
+      The step named final_answer is the submitted JSON: root causes (service, fault_kind, evidence items with a claim and SQL) and propagation edges.
+      A system step named force_submit means the harness stopped the investigation because the budget ran out.
+
+      The metadata block below gives the ground truth: rc_services (the true root-cause services), fault_type ("hybrid" means several independent faults) and system (ts = TrainTicket, hs = HotelReservation, otel-demo = OpenTelemetry demo).
+      Judge the investigation from what the agent could see at each step, and use the ground truth only where a feature definition says so.
+
+      Tool results were cut to about 3000 characters when the run was stored, while the agent saw them whole; a result ending with "[cut when stored]" is incomplete.
+      Do not count a claim as unsupported only because its numbers could be in the cut-off part of such a result.
 
 # Enabled operators; `traj operators list` shows the built-in library and the project's operators/ directory.
 # LLM operators with the same `call` share one LLM call per trajectory.
@@ -63,17 +74,6 @@ operators:
 calls:
   rca_judge:
     evidence: true
-    guidance: |
-      This trajectory is an LLM agent doing root cause analysis (RCA) of a microservice incident.
-      The agent queries telemetry parquet files (abnormal_* for the incident window, normal_* for a baseline window) with DuckDB SQL through query_parquet_files, may record reasoning with think_tool, and ends with submit_findings.
-      The last step, marked [final answer], is the submitted JSON: root causes (service, fault_kind, evidence items with a claim and SQL) and propagation edges.
-      A step starting with [force_submit] means the harness stopped the investigation because the budget ran out.
-
-      The metadata block at the top of the file gives the ground truth: rc_services (the true root-cause services), fault_type ("hybrid" means several independent faults) and system (ts = TrainTicket, hs = HotelReservation, otel-demo = OpenTelemetry demo).
-      Judge the investigation from what the agent could see at each step, and use the ground truth only where a feature definition says so.
-
-      Tool results in this record were cut to about 3000 characters when the run was stored, while the agent saw them whole.
-      A result that ends abruptly is incomplete, so do not count a claim as unsupported only because its numbers could be in the cut-off part of a result.
 
 render:
   max_step_chars: 4000
@@ -84,7 +84,6 @@ render:
                   prompt_path, elapsed_s, total_steps, "eval_*"]
 
 engine:
-  kind: deepseek
   dsh_home: ~/.dsh
   model: DeepSeek-V4-flash
   provider: litellm

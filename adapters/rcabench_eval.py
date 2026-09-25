@@ -21,6 +21,13 @@ ORDER BY e.exp_id, e.model_name, e.dataset_index
 
 MESSAGE_ROLES: dict[str, Role] = {"system": "system", "human": "user"}
 ERROR_OPENING = re.compile(r'\s*\{\s*"error"\s*:')
+# Step names that operators rely on: the injected budget message and the submitted answer.
+FORCE_SUBMIT = "force_submit"
+FINAL_ANSWER = "final_answer"
+# The database stores tool results cut to 2989-3000 characters (about a quarter of the query results in ops-lite),
+# while the agent saw them whole; results at least this long get the marker, which operators and the LLM can read.
+STORED_CUT = 2989
+STORED_CUT_MARKER = "\n[cut when stored]"
 
 
 class RcabenchEvalAdapter:
@@ -28,11 +35,12 @@ class RcabenchEvalAdapter:
 
     Each row's `trajectories` column holds the agent harness event log.
     `llm_start` messages become system and user steps; messages injected at a named node, such as `force_submit`,
-    become system steps marked with the node name.
+    become system steps named after the node.
     `llm_end` becomes an assistant step for its text and one tool call step per call; the separate `tool_call`
     events repeat those calls and are skipped.
-    `tool_result` becomes a tool result step, flagged as an error when the result is a JSON object with an `error` key.
-    `result` becomes a final assistant step holding the submitted answer.
+    `tool_result` becomes a tool result step, flagged as an error when the result is a JSON object with an `error` key,
+    and ending with STORED_CUT_MARKER when the stored text was cut.
+    `result` becomes a final assistant step named `final_answer` holding the submitted answer.
     Case facts, evaluation metrics and token usage go into metadata.
     """
 
@@ -91,7 +99,7 @@ class RcabenchEvalAdapter:
                     node = data.get("node")
                     for message in data["messages"]:
                         if node is not None:
-                            add("system", "message", f"[{node}] {message['content']}", stamp)
+                            add("system", "message", message["content"], stamp, name=node)
                         else:
                             add(MESSAGE_ROLES[message["type"]], "message", message["content"], stamp)
                 case "llm_end":
@@ -105,9 +113,11 @@ class RcabenchEvalAdapter:
                 case "tool_result":
                     result = data["result"]
                     text = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
+                    if len(text) >= STORED_CUT:
+                        text += STORED_CUT_MARKER
                     add("tool", "tool_result", text, stamp, name=data["tool_name"], is_error=_is_error(text))
                 case "result":
-                    add("assistant", "message", f"[final answer]\n{data['final_output']}", stamp)
+                    add("assistant", "message", data["final_output"], stamp, name=FINAL_ANSWER)
                 case "run_complete":
                     metadata["elapsed_s"] = data["elapsed_s"]
                     metadata["total_steps"] = data["total_steps"]

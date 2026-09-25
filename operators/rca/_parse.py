@@ -9,9 +9,9 @@ from traj_analyzer.schema import Step, Trajectory
 
 TOOLS = {"query_parquet_files", "get_schema", "list_tables_in_directory", "think_tool", "submit_findings"}
 QUERY = "query_parquet_files"
-# The evaluation database stores tool results cut to 2989-3000 characters (about a quarter of all query results in
-# ops-lite), while the agent saw them whole; a stored result at least this long may be incomplete.
-STORED_RESULT_CUT = 2989
+# Conventions of adapters/rcabench_eval.py, which marks stored results that were cut and names two special steps.
+STORED_CUT_MARKER = "\n[cut when stored]"
+FORCE_SUBMIT = "force_submit"
 
 # Error texts of the RCABench harness, matched in order; the first match names the kind.
 ERROR_KINDS = [
