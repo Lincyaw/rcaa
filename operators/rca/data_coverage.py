@@ -38,10 +38,10 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
         FeatureSpec(name="injection_log_hunt", type="boolean",
                     description="Some query searched log messages for fault injection terms (mutat, inject, "
                                 "chaos, fault)."),
-        FeatureSpec(name="severe_level_excluded", type="boolean",
+        FeatureSpec(name="severe_level_exclusion", type="boolean",
                     description="TrainTicket only: the agent filtered logs by level but never queried SEVERE, the "
                                 "level its Java services use for their worst errors; empty for other systems."),
-        FeatureSpec(name="services_probed", type="scalar",
+        FeatureSpec(name="probed_service_count", type="scalar",
                     description="Distinct service names the agent filtered on in its queries."),
     ]
 
@@ -68,9 +68,9 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "first_modality": first,
         "span_parent_join": any(PAIRING.search(s) and JOIN.search(s) for s in sqls),
         "injection_log_hunt": any(INJECTION_HUNT.search(s) for s in sqls),
-        "severe_level_excluded": level_filtered and not any("SEVERE" in s.upper() for s in sqls)
+        "severe_level_exclusion": level_filtered and not any("SEVERE" in s.upper() for s in sqls)
         if trajectory.metadata["system"] == "ts" else None,
-        "services_probed": float(len(set().union(*(services_in(s) for s in sqls)))),
+        "probed_service_count": float(len(set().union(*(services_in(s) for s in sqls)))),
     }
 
 

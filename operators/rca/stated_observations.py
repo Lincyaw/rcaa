@@ -10,18 +10,18 @@ cite that step. A tool result showing the same thing does not count. Do not judg
 
 def outputs(params: NoParams) -> list[FeatureSpec]:
     return [
-        FeatureSpec(name="says_multiple_faults", type="boolean",
+        FeatureSpec(name="agent_mentions_multiple_faults", type="boolean",
                     description="The agent writes that there may be, or are, more than one independent fault."),
-        FeatureSpec(name="says_data_missing", type="boolean",
+        FeatureSpec(name="agent_notes_missing_data", type="boolean",
                     description="The agent writes that expected data is missing: a service's spans, traces, metrics "
                                 "or pods absent in the incident window."),
-        FeatureSpec(name="says_contradiction", type="boolean",
+        FeatureSpec(name="agent_notes_contradiction", type="boolean",
                     description="The agent writes that a result does not fit, contradicts, or is not explained by "
                                 "its current hypothesis."),
-        FeatureSpec(name="says_fault_injection", type="boolean",
+        FeatureSpec(name="agent_mentions_fault_injection", type="boolean",
                     description="The agent writes about fault injection tooling, such as chaos experiments or a "
                                 "mutation agent."),
-        FeatureSpec(name="says_fault_kind_reason", type="boolean",
+        FeatureSpec(name="agent_explains_fault_kind", type="boolean",
                     description="Before submitting, the agent writes why it chose the fault kind it submits, e.g. "
                                 "'restarts and not-ready pods mean pod failure'."),
     ]

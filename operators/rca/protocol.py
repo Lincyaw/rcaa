@@ -18,9 +18,9 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
                                 "repeated the same reasoning."),
         FeatureSpec(name="think_only_turn_share", type="scalar", range=(0, 1),
                     description="Share of turns whose calls are all think_tool: planning without acting."),
-        FeatureSpec(name="force_submitted", type="boolean",
+        FeatureSpec(name="forced_submission", type="boolean",
                     description="The harness injected a force_submit message because the budget ran out."),
-        FeatureSpec(name="submit_with_other_calls", type="boolean",
+        FeatureSpec(name="submission_with_other_calls", type="boolean",
                     description="submit_findings was issued in the same turn as other tool calls, which the prompt "
                                 "forbids."),
     ]
@@ -39,8 +39,8 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "think_distinct_ratio": len({c.step.content for c in thinks}) / len(thinks) if thinks else None,
         "think_only_turn_share": sum(1 for names in turns.values() if set(names) == {"think_tool"}) / len(turns)
         if turns else None,
-        "force_submitted": any(s.name == FORCE_SUBMIT for s in trajectory.steps),
-        "submit_with_other_calls": any(len(names) > 1 for names in submit_turns),
+        "forced_submission": any(s.name == FORCE_SUBMIT for s in trajectory.steps),
+        "submission_with_other_calls": any(len(names) > 1 for names in submit_turns),
     }
 
 

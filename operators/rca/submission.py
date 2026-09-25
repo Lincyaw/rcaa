@@ -32,9 +32,9 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
         FeatureSpec(name="evidence_preexecuted_share", type="scalar", range=(0, 1),
                     description="Share of evidence SQL that the agent had already run successfully, compared after "
                                 "normalizing whitespace and case."),
-        FeatureSpec(name="gt_services_probed_share", type="scalar", range=(0, 1),
+        FeatureSpec(name="probed_gt_service_share", type="scalar", range=(0, 1),
                     description="Share of ground-truth root-cause services the agent ever filtered on in a query."),
-        FeatureSpec(name="gt_probed_not_submitted", type="boolean",
+        FeatureSpec(name="dropped_gt_service", type="boolean",
                     description="The agent filtered on some ground-truth service but did not submit it as a root "
                                 "cause: it looked at the right service and dropped it."),
     ]
@@ -60,8 +60,8 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "submitted_fault_kinds": sorted({str(rc.get("fault_kind")) for rc in valid}),
         "evidence_preexecuted_share": sum(s in executed for s in evidence_sql) / len(evidence_sql)
         if evidence_sql else None,
-        "gt_services_probed_share": len(truth & probed) / len(truth),
-        "gt_probed_not_submitted": bool((truth & probed) - submitted),
+        "probed_gt_service_share": len(truth & probed) / len(truth),
+        "dropped_gt_service": bool((truth & probed) - submitted),
     }
 
 
