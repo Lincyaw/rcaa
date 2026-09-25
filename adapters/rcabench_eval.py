@@ -133,3 +133,6 @@ def _is_error(text: str) -> bool:
     JSON, so the check reads the opening of the result instead of parsing it.
     """
     return ERROR_OPENING.match(text) is not None
+
+
+ADAPTER = RcabenchEvalAdapter

@@ -4,7 +4,7 @@ version: 1
 
 datasets:
   ops-lite:
-    adapter: adapters/rcabench_eval.py:RcabenchEvalAdapter
+    adapter: rcabench_eval
     input: [data/eval.db]
     options:
       experiments: [ops-lite]
