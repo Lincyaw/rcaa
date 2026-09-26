@@ -20,9 +20,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
                     description="Share of turns whose calls are all think_tool: planning without acting."),
         FeatureSpec(name="forced_submission", type="boolean",
                     description="The harness injected a force_submit message because the budget ran out."),
-        FeatureSpec(name="submission_with_other_calls", type="boolean",
-                    description="submit_findings was issued in the same turn as other tool calls, which the prompt "
-                                "forbids."),
     ]
 
 
@@ -33,20 +30,18 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     turns: dict[int, list[str]] = defaultdict(list)
     for call in all_calls:
         turns[call.turn].append(call.name)
-    submit_turns = [names for names in turns.values() if "submit_findings" in names]
     return {
         "think_per_query": len(thinks) / len(queries) if queries else None,
         "think_distinct_ratio": len({c.step.content for c in thinks}) / len(thinks) if thinks else None,
         "think_only_turn_share": sum(1 for names in turns.values() if set(names) == {"think_tool"}) / len(turns)
         if turns else None,
         "forced_submission": any(s.name == FORCE_SUBMIT for s in trajectory.steps),
-        "submission_with_other_calls": any(len(names) > 1 for names in submit_turns),
     }
 
 
 OPERATOR = Operator(
     kind="code",
-    description="Whether the agent followed the harness protocol: explicit reasoning, budget and submission rules.",
+    description="Whether the agent followed the harness protocol: explicit reasoning and the budget.",
     tags=("agent", "rca"),
     outputs=outputs,
     compute=compute,

@@ -7,7 +7,6 @@ from typing import Any
 
 from traj_analyzer.schema import Step, Trajectory
 
-TOOLS = {"query_parquet_files", "get_schema", "list_tables_in_directory", "think_tool", "submit_findings"}
 QUERY = "query_parquet_files"
 # Conventions of adapters/rcabench_eval.py, which marks stored results that were cut and names two special steps.
 STORED_CUT_MARKER = "\n[cut when stored]"
@@ -110,15 +109,13 @@ def has_submission(trajectory: Trajectory) -> bool:
     return submission(trajectory) is not None
 
 
-def root_causes(answer: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
-    """Well-formed root causes, which are objects naming a service, and the number of malformed entries.
+def root_causes(answer: dict[str, Any]) -> list[dict[str, Any]]:
+    """Well-formed root causes, which are objects naming a service.
 
     A few submissions in ops-lite hold root causes without a service or as bare strings.
     """
-    entries = answer.get("root_causes", [])
-    valid = [rc for rc in entries if isinstance(rc, dict) and "service" in rc]
-    return valid, len(entries) - len(valid)
+    return [rc for rc in answer.get("root_causes", []) if isinstance(rc, dict) and "service" in rc]
 
 
 def submitted_services(answer: dict[str, Any]) -> set[str]:
-    return {str(rc["service"]) for rc in root_causes(answer)[0]}
+    return {str(rc["service"]) for rc in root_causes(answer)}

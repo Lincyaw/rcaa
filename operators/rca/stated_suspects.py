@@ -20,10 +20,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
                     description="The first service the agent writes may be a root cause; 'none' if it never does."),
         FeatureSpec(name="first_suspect_step", type="scalar",
                     description="Step number of the message where first_suspect is first written; -1 if none."),
-        FeatureSpec(name="suspected_gt_services", type="set",
-                    description="The services of rc_services in the metadata that appear in suspected_services."),
-        FeatureSpec(name="ruled_out_gt_services", type="set",
-                    description="The services of rc_services in the metadata that appear in ruled_out_services."),
     ]
 
 

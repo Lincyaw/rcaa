@@ -15,15 +15,9 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
         FeatureSpec(name="agent_notes_missing_data", type="boolean",
                     description="The agent writes that expected data is missing: a service's spans, traces, metrics "
                                 "or pods absent in the incident window."),
-        FeatureSpec(name="agent_notes_contradiction", type="boolean",
-                    description="The agent writes that a result does not fit, contradicts, or is not explained by "
-                                "its current hypothesis."),
         FeatureSpec(name="agent_mentions_fault_injection", type="boolean",
                     description="The agent writes about fault injection tooling, such as chaos experiments or a "
                                 "mutation agent."),
-        FeatureSpec(name="agent_explains_fault_kind", type="boolean",
-                    description="Before submitting, the agent writes why it chose the fault kind it submits, e.g. "
-                                "'restarts and not-ready pods mean pod failure'."),
     ]
 
 

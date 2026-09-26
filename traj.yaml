@@ -14,8 +14,7 @@ datasets:
       The step named final_answer is the submitted JSON: root causes (service, fault_kind, evidence items with a claim and SQL) and propagation edges.
       A system step named force_submit means the harness stopped the investigation because the budget ran out.
 
-      The metadata block below gives the ground truth: rc_services (the true root-cause services), fault_type ("hybrid" means several independent faults) and system (ts = TrainTicket, hs = HotelReservation, otel-demo = OpenTelemetry demo).
-      Judge the investigation from what the agent could see at each step, and use the ground truth only where a feature definition says so.
+      The metadata block below names the system: ts = TrainTicket, hs = HotelReservation, otel-demo = OpenTelemetry demo.
 
       Tool results were cut to about 3000 characters when the run was stored, while the agent saw them whole; a result ending with "[cut when stored]" is incomplete.
       Do not count a claim as unsupported only because its numbers could be in the cut-off part of such a result.
@@ -23,16 +22,14 @@ datasets:
 # Enabled operators; `traj operators list` shows the built-in library and the project's operators/ directory.
 # LLM operators with the same `call` share one LLM call per trajectory.
 operators:
-  - use: stats.basic
-  - use: stats.tool_usage
   - use: meta.fields
     as: case
     params:
       fields:
         model: {key: model, type: category}
         system: {key: system, type: category}
-        fault_type: {key: fault_type, type: category}
-        rc_service_count: {key: rc_services, type: set}
+        rc_services: {key: rc_services, type: set}
+        gt_fault_kinds: {key: eval_gt_fault_kinds, type: set}
   - use: meta.fields
     as: eval
     params:
@@ -42,7 +39,6 @@ operators:
         any_root_cause_hit: {key: eval_any_root_cause_hit, type: boolean}
         any_service_hit: {key: eval_any_service_hit, type: boolean}
         fault_kind_accuracy: {key: eval_fault_kind_accuracy, type: scalar, range: [0, 1]}
-        evidence_support_rate: {key: eval_evidence_support_rate, type: scalar, range: [0, 1]}
         sql_executable_rate: {key: eval_sql_executable_rate, type: scalar, range: [0, 1]}
         path_reachability: {key: eval_path_reachability, type: boolean}
         node_f1: {key: eval_node_f1, type: scalar, range: [0, 1]}
@@ -62,7 +58,6 @@ operators:
     as: cost
     params:
       fields:
-        n_llm_calls: {key: n_llm_calls, type: scalar}
         output_tokens: {key: output_tokens, type: scalar}
         input_tokens: {key: input_tokens, type: scalar}
         elapsed_s: {key: elapsed_s, type: scalar}
@@ -74,10 +69,9 @@ calls:
 render:
   max_step_chars: 4000
   chunk_chars: 24000
-  # LLM operators judge the investigation without knowing the model, the experiment or the evaluation result.
-  # The ground truth (rc_services, fault_type) stays visible so that operators can compare the answer against it.
+  # LLM operators read the investigation without knowing the model, the experiment, the ground truth or the evaluation.
   hide_metadata: [exp_id, model, agent, time_cost, input_tokens, output_tokens, cache_hit_tokens, n_llm_calls,
-                  prompt_path, elapsed_s, total_steps, "eval_*"]
+                  prompt_path, elapsed_s, total_steps, rc_services, fault_type, case_source, "eval_*"]
 
 engine:
   dsh_home: ~/.dsh

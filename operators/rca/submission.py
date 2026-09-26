@@ -21,8 +21,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
     return [
         FeatureSpec(name="n_root_causes", type="scalar",
                     description="Well-formed root causes, objects naming a service, in the submitted answer."),
-        FeatureSpec(name="malformed_root_causes", type="scalar",
-                    description="Submitted root-cause entries without a service or not given as objects."),
         FeatureSpec(name="root_cause_gap", type="scalar",
                     description="Ground-truth root-cause services minus submitted root causes; positive means the "
                                 "agent submitted fewer causes than the incident has."),
@@ -43,7 +41,7 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
 def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     answer = submission(trajectory)
     assert answer is not None
-    valid, malformed = root_causes(answer)
+    valid = root_causes(answer)
     evidence = [item for rc in valid for item in rc.get("evidence", []) if isinstance(item, dict)]
     queries = [c for c in calls(trajectory) if c.name == QUERY]
     executed = {normalize_sql(c.sql) for c in queries if c.result is not None and not c.failed}
@@ -53,7 +51,6 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     submitted = submitted_services(answer)
     return {
         "n_root_causes": float(len(valid)),
-        "malformed_root_causes": float(malformed),
         "root_cause_gap": float(len(truth) - len(valid)),
         "n_evidence": float(len(evidence)),
         "evidence_kinds": sorted({str(item.get("kind")) for item in evidence}),

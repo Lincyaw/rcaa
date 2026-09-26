@@ -7,7 +7,7 @@ from typing import Any
 from traj_analyzer.operators.base import FeatureSpec, NoParams, Operator
 from traj_analyzer.schema import Trajectory
 
-from rca._parse import QUERY, STORED_CUT_MARKER, TOOLS, calls, error_kind, normalize_sql
+from rca._parse import QUERY, STORED_CUT_MARKER, calls, error_kind, normalize_sql
 
 ERROR_LABELS = {
     "token_budget": "The result was larger than the token budget and was replaced by an error.",
@@ -38,8 +38,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
         FeatureSpec(name="silent_truncation_count", type="scalar",
                     description="Successful queries without a limit argument that returned exactly 10 rows, the "
                                 "harness default, so the result was probably cut off."),
-        FeatureSpec(name="unknown_tool_calls", type="scalar",
-                    description="Calls to tool names the harness does not offer."),
     ]
 
 
@@ -77,7 +75,6 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "duplicate_query_rate": duplicates / len(queries) if queries else None,
         "empty_result_rate": empty / len(succeeded) if succeeded else None,
         "silent_truncation_count": float(truncated),
-        "unknown_tool_calls": float(sum(1 for c in all_calls if c.name not in TOOLS)),
     }
 
 

@@ -76,6 +76,8 @@ class RcabenchEvalAdapter:
             if value is None or isinstance(value, bool | int | float | str):
                 metadata[f"eval_{key}"] = value
         metadata["eval_fault_status"] = sorted({f["status"] for f in metrics.get("per_fault") or []})
+        # fault_type is a numeric code for TrainTicket cases; the evaluation names the injected kinds.
+        metadata["eval_gt_fault_kinds"] = sorted({f["gt_fault_kind"] for f in metrics.get("per_fault") or []})
         tid = f"{exp_id}__{model}__{index:03d}"
         steps = self._steps(json.loads(events_json)["events"], metadata)
         return Trajectory(id=tid, dataset=dataset, metadata=metadata, steps=steps)
