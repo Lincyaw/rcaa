@@ -27,6 +27,7 @@ operators:
     params:
       fields:
         model: {key: model, type: category}
+        case_id: {key: case_index, type: category}
         system: {key: system, type: category}
         rc_services: {key: rc_services, type: set}
         gt_fault_kinds: {key: eval_gt_fault_kinds, type: set}

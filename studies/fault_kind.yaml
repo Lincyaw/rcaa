@@ -1,0 +1,10 @@
+description: Among runs that named a true root-cause service, what separates those that also named its fault kind.
+where: "any_service_hit == 1"
+target: "any_root_cause_hit == 1"
+by: [model, case_id]
+outcomes: [eval, rc_services, gt_fault_kinds, submitted_fault_kinds]
+pairs:
+  within: case_id
+  spread: system
+  distinct: model
+  n: 5
