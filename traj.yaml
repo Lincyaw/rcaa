@@ -31,6 +31,7 @@ operators:
         system: {key: system, type: category}
         rc_services: {key: rc_services, type: set}
         gt_fault_kinds: {key: eval_gt_fault_kinds, type: set}
+        gt_fault_families: {key: eval_gt_fault_families, type: set}
   - use: meta.fields
     as: eval
     params:

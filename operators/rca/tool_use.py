@@ -57,7 +57,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         key = normalize_sql(query.sql)
         duplicates += key in seen
         seen.add(key)
-    succeeded = [c for c in queries if c.result is not None and not c.failed]
+    succeeded = [c for c in queries if c.succeeded]
     empty = sum(1 for c in succeeded if c.result is not None and c.result.content.strip() == "[]")
     truncated = 0
     for query in succeeded:

@@ -57,7 +57,7 @@ class Call:
     def succeeded(self) -> bool:
         return self.result is not None and not self.result.is_error
 
-    @cached_property
+    @property
     def tree(self) -> exp.Expression | None:
         return parse_sql(self.sql)
 
@@ -65,11 +65,10 @@ class Call:
     def telemetry(self) -> set[tuple[str, str]]:
         """(window, kind) of every telemetry file the query reads, from its SQL and its parquet_files argument."""
         given = self.args.get("parquet_files") or []
-        names = files_read(self.tree) | {p.rsplit("/", 1)[-1].removesuffix(".parquet")
-                                         for p in ([given] if isinstance(given, str) else given)}
+        paths = files_read(self.tree) | set([given] if isinstance(given, str) else given)
         found = set()
-        for name in names:
-            window, _, kind = name.partition("_")
+        for path in paths:
+            window, _, kind = path.rsplit("/", 1)[-1].removesuffix(".parquet").partition("_")
             if window in WINDOWS and kind in FILE_KINDS:
                 found.add((window, kind))
         return found
@@ -113,7 +112,7 @@ def normalize_sql(sql: str) -> str:
     return re.sub(r"\s+", " ", sql.strip().rstrip(";")).lower()
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=256)
 def parse_sql(sql: str) -> exp.Expression | None:
     """The syntax tree of an agent's query, or None when sqlglot cannot parse it.
 
@@ -145,14 +144,14 @@ def services_in(tree: exp.Expression | None) -> set[str]:
 
 
 def files_read(tree: exp.Expression | None) -> set[str]:
-    """Base names of the parquet files a query reads, from its tables and the string literals in its tables."""
+    """Names and paths of the files a query reads: its table names and the string literals inside its tables."""
     if tree is None:
         return set()
     names = set()
     for table in tree.find_all(exp.Table):
         names.add(table.name)
         names.update(lit.this for lit in table.find_all(exp.Literal) if lit.is_string)
-    return {n.rsplit("/", 1)[-1].removesuffix(".parquet") for n in names if n}
+    return {n for n in names if n}
 
 
 def submission(trajectory: Trajectory) -> dict[str, Any] | None:

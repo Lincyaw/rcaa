@@ -8,13 +8,12 @@ from traj_analyzer.schema import Trajectory
 
 from rca._parse import QUERY, calls, services_in
 
+# A file kind's modality is its first word: metrics_sum and metrics_histogram are metrics.
 MODALITIES = {
     "traces": "abnormal_traces or normal_traces",
     "logs": "abnormal_logs or normal_logs",
     "metrics": "abnormal_metrics, abnormal_metrics_sum, abnormal_metrics_histogram or their normal counterparts",
 }
-FILE_MODALITY = {"traces": "traces", "logs": "logs", "metrics": "metrics", "metrics_sum": "metrics",
-                 "metrics_histogram": "metrics"}
 INJECTION_TERMS = ("mutat", "inject", "chaos", "fault")
 PATTERN_MATCHES = (exp.Like, exp.ILike, exp.RegexpLike, exp.RegexpILike)
 
@@ -96,11 +95,11 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     weights = dict.fromkeys(MODALITIES, 0.0)
     read = 0
     for call in queries:
-        found = {FILE_MODALITY[kind] for _, kind in call.telemetry}
+        found = {kind.partition("_")[0] for _, kind in call.telemetry}
         read += bool(found)
         for modality in found:
             weights[modality] += 1 / len(found)
-    first = next((FILE_MODALITY[min(c.telemetry)[1]] for c in queries if c.succeeded and c.telemetry), None)
+    first = next((min(c.telemetry)[1].partition("_")[0] for c in queries if c.succeeded and c.telemetry), None)
     trees = [c.tree for c in queries if c.tree is not None]
     literals = [lit.this.upper() for tree in trees for lit in tree.find_all(exp.Literal) if lit.is_string]
     return {

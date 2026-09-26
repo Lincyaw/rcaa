@@ -10,6 +10,8 @@ from rca._parse import QUERY, calls, services_in, true_services
 
 def outputs(params: NoParams) -> list[FeatureSpec]:
     return [
+        FeatureSpec(name="probed_gt_service_share", type="scalar", range=(0, 1),
+                    description="Share of ground-truth root-cause services the agent ever filtered on in a query."),
         FeatureSpec(name="gt_focused_query", type="boolean",
                     description="Some query filters service_name on ground-truth root-cause services only."),
         FeatureSpec(name="gt_probe_share", type="scalar", range=(0, 1),
@@ -30,6 +32,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     on_truth = 0
     focused = False
     metric = False
+    probed: set[str] = set()
     windows: dict[str, set[str]] = {service: set() for service in truth}
     for call in calls(trajectory):
         if call.name != QUERY:
@@ -39,6 +42,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
             continue
         filtered += 1
         hit = services & truth
+        probed |= hit
         on_truth += bool(hit)
         focused = focused or services <= truth
         if not hit or not call.succeeded:
@@ -47,6 +51,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         for service in hit:
             windows[service].update(window for window, _ in call.telemetry)
     return {
+        "probed_gt_service_share": len(probed) / len(truth),
         "gt_focused_query": focused,
         "gt_probe_share": on_truth / filtered if filtered else None,
         "gt_metric_probed": metric,
@@ -56,7 +61,8 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
 
 OPERATOR = Operator(
     kind="code",
-    description="How the queries covered the ground-truth root-cause services: focus, share, metrics and baseline.",
+    description="How the queries covered the ground-truth root-cause services: reach, focus, share, metrics and "
+                "baseline.",
     tags=("agent", "rca"),
     outputs=outputs,
     compute=compute,

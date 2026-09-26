@@ -78,6 +78,8 @@ class RcabenchEvalAdapter:
         metadata["eval_fault_status"] = sorted({f["status"] for f in metrics.get("per_fault") or []})
         # fault_type is a numeric code for TrainTicket cases; the evaluation names the injected kinds.
         metadata["eval_gt_fault_kinds"] = sorted({f["gt_fault_kind"] for f in metrics.get("per_fault") or []})
+        # A kind's family is its first word, such as network for network_delay and jvm for jvm_heap_stress.
+        metadata["eval_gt_fault_families"] = sorted({k.split("_")[0] for k in metadata["eval_gt_fault_kinds"]})
         tid = f"{exp_id}__{model}__{index:03d}"
         steps = self._steps(json.loads(events_json)["events"], metadata)
         return Trajectory(id=tid, dataset=dataset, metadata=metadata, steps=steps)

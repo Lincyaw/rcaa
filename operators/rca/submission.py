@@ -31,8 +31,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
         FeatureSpec(name="evidence_preexecuted_share", type="scalar", range=(0, 1),
                     description="Share of evidence SQL that the agent had already run successfully, compared after "
                                 "normalizing whitespace and case."),
-        FeatureSpec(name="probed_gt_service_share", type="scalar", range=(0, 1),
-                    description="Share of ground-truth root-cause services the agent ever filtered on in a query."),
         FeatureSpec(name="dropped_gt_service", type="boolean",
                     description="The agent filtered on some ground-truth service but did not submit it as a root "
                                 "cause: it looked at the right service and dropped it."),
@@ -45,7 +43,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     valid = root_causes(answer)
     evidence = [item for rc in valid for item in rc.get("evidence", []) if isinstance(item, dict)]
     queries = [c for c in calls(trajectory) if c.name == QUERY]
-    executed = {normalize_sql(c.sql) for c in queries if c.result is not None and not c.failed}
+    executed = {normalize_sql(c.sql) for c in queries if c.succeeded}
     evidence_sql = [normalize_sql(str(item.get("sql", ""))) for item in evidence if item.get("sql")]
     probed = set().union(*(services_in(c.tree) for c in queries))
     truth = set(true_services(trajectory))
@@ -58,15 +56,14 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "submitted_fault_kinds": sorted({str(rc.get("fault_kind")) for rc in valid}),
         "evidence_preexecuted_share": sum(s in executed for s in evidence_sql) / len(evidence_sql)
         if evidence_sql else None,
-        "probed_gt_service_share": len(truth & probed) / len(truth),
         "dropped_gt_service": bool((truth & probed) - submitted),
     }
 
 
 OPERATOR = Operator(
     kind="code",
-    description="What the agent submitted, how its evidence relates to the queries it ran, and how it covered the "
-                "ground-truth services.",
+    description="What the agent submitted, how its evidence relates to the queries it ran, and whether it dropped a "
+                "ground-truth service it had queried.",
     tags=("agent", "rca"),
     outputs=outputs,
     compute=compute,
