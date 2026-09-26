@@ -14,6 +14,7 @@ from rca._parse import (
     services_in,
     submission,
     submitted_services,
+    true_services,
 )
 
 
@@ -46,8 +47,8 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     queries = [c for c in calls(trajectory) if c.name == QUERY]
     executed = {normalize_sql(c.sql) for c in queries if c.result is not None and not c.failed}
     evidence_sql = [normalize_sql(str(item.get("sql", ""))) for item in evidence if item.get("sql")]
-    probed = set().union(*(services_in(c.sql) for c in queries))
-    truth = set(trajectory.metadata["rc_services"])
+    probed = set().union(*(services_in(c.tree) for c in queries))
+    truth = set(true_services(trajectory))
     submitted = submitted_services(answer)
     return {
         "n_root_causes": float(len(valid)),

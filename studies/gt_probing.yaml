@@ -1,7 +1,8 @@
 description: What separates runs that ever queried a true root-cause service from runs that never did.
 target: "probed_gt_service_share > 0"
 by: [model, case_id]
-outcomes: [eval, rc_services, gt_fault_kinds, probed_gt_service_share, dropped_gt_service]
+# rca.gt_coverage describes queries on the true services, which the target already requires.
+outcomes: [eval, rc_services, gt_fault_kinds, probed_gt_service_share, dropped_gt_service, rca.gt_coverage]
 pairs:
   within: case_id
   spread: system

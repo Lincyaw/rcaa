@@ -1,3 +1,4 @@
 .traj/
 data/
 __pycache__/
+.venv/

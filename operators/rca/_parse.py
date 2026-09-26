@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from functools import cached_property, lru_cache
 from typing import Any
 
+import sqlglot
+from sqlglot import exp
 from traj_analyzer.schema import Step, Trajectory
 
 QUERY = "query_parquet_files"
@@ -20,12 +23,9 @@ ERROR_KINDS = [
     ("type_overflow", re.compile(r"Out of Range|Overflow|Conversion Error", re.I)),
     ("sql_error", re.compile(r"Binder Error|Parser Error|Catalog Error|syntax error|Query execution failed", re.I)),
 ]
-BASELINE = re.compile(r"(?<![a-z_])normal_(traces|logs|metrics)", re.I)
-ABNORMAL = re.compile(r"abnormal_(traces|logs|metrics)", re.I)
-MODALITY = re.compile(r"(?:ab)?normal_(traces|logs|metrics_histogram|metrics_sum|metrics)", re.I)
-SERVICE_FILTER = re.compile(r"service_name\"?\s*(?:=|IN\s*\(|LIKE|ILIKE)\s*([^)]*?)(?:\)|\bAND\b|\bOR\b|\bGROUP\b|\bORDER\b|$)",
-                            re.I | re.S)
-QUOTED = re.compile(r"'([^']+)'")
+# Telemetry files are named <window>_<kind>.parquet: abnormal for the incident window, normal for the baseline.
+WINDOWS = ("abnormal", "normal")
+FILE_KINDS = ("traces", "logs", "metrics", "metrics_sum", "metrics_histogram")
 
 
 @dataclass
@@ -52,6 +52,27 @@ class Call:
     @property
     def failed(self) -> bool:
         return self.result is not None and self.result.is_error
+
+    @property
+    def succeeded(self) -> bool:
+        return self.result is not None and not self.result.is_error
+
+    @cached_property
+    def tree(self) -> exp.Expression | None:
+        return parse_sql(self.sql)
+
+    @cached_property
+    def telemetry(self) -> set[tuple[str, str]]:
+        """(window, kind) of every telemetry file the query reads, from its SQL and its parquet_files argument."""
+        given = self.args.get("parquet_files") or []
+        names = files_read(self.tree) | {p.rsplit("/", 1)[-1].removesuffix(".parquet")
+                                         for p in ([given] if isinstance(given, str) else given)}
+        found = set()
+        for name in names:
+            window, _, kind = name.partition("_")
+            if window in WINDOWS and kind in FILE_KINDS:
+                found.add((window, kind))
+        return found
 
 
 def calls(trajectory: Trajectory) -> list[Call]:
@@ -92,11 +113,46 @@ def normalize_sql(sql: str) -> str:
     return re.sub(r"\s+", " ", sql.strip().rstrip(";")).lower()
 
 
-def services_in(sql: str) -> set[str]:
+@lru_cache(maxsize=4096)
+def parse_sql(sql: str) -> exp.Expression | None:
+    """The syntax tree of an agent's query, or None when sqlglot cannot parse it.
+
+    Agents write invalid SQL too, which DuckDB also rejects; such a query filters and reads nothing here.
+    Every operator of a trajectory parses the same queries, so trees are cached; callers only read them.
+    """
+    try:
+        return sqlglot.parse_one(sql, read="duckdb")
+    except sqlglot.errors.SqlglotError:
+        return None
+
+
+def service_key(name: str) -> str:
+    return name.strip().strip("%").lower().replace("_", "-")
+
+
+def services_in(tree: exp.Expression | None) -> set[str]:
+    """Service names compared with the service_name column through =, IN, LIKE or ILIKE, as service keys."""
+    if tree is None:
+        return set()
     services = set()
-    for match in SERVICE_FILTER.finditer(sql):
-        services.update(value.strip("%") for value in QUOTED.findall(match.group(1)))
+    for node in tree.find_all(exp.EQ, exp.In, exp.Like, exp.ILike):
+        sides = [node.this, *([] if isinstance(node, exp.In) else [node.expression])]
+        if not any(isinstance(s, exp.Column) and s.name.lower() == "service_name" for s in sides):
+            continue
+        values = node.expressions if isinstance(node, exp.In) else sides
+        services.update(service_key(v.this) for v in values if isinstance(v, exp.Literal) and v.is_string)
     return {s for s in services if s}
+
+
+def files_read(tree: exp.Expression | None) -> set[str]:
+    """Base names of the parquet files a query reads, from its tables and the string literals in its tables."""
+    if tree is None:
+        return set()
+    names = set()
+    for table in tree.find_all(exp.Table):
+        names.add(table.name)
+        names.update(lit.this for lit in table.find_all(exp.Literal) if lit.is_string)
+    return {n.rsplit("/", 1)[-1].removesuffix(".parquet") for n in names if n}
 
 
 def submission(trajectory: Trajectory) -> dict[str, Any] | None:
@@ -118,4 +174,8 @@ def root_causes(answer: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def submitted_services(answer: dict[str, Any]) -> set[str]:
-    return {str(rc["service"]) for rc in root_causes(answer)}
+    return {service_key(str(rc["service"])) for rc in root_causes(answer)}
+
+
+def true_services(trajectory: Trajectory) -> list[str]:
+    return [service_key(s) for s in trajectory.metadata["rc_services"]]

@@ -62,6 +62,7 @@ operators:
         output_tokens: {key: output_tokens, type: scalar}
         input_tokens: {key: input_tokens, type: scalar}
         elapsed_s: {key: elapsed_s, type: scalar}
+  - use: rca.gt_coverage
 
 calls:
   rca_extract:
