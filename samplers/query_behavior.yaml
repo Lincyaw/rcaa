@@ -1,0 +1,13 @@
+name: query_behavior
+budget: 30
+seed: 0
+# How the agent queries: files read, the role each column takes, and the values it compares, from rca.sql_shape.
+features: [query_files, query_atoms, query_filter_values]
+strategies:
+  - kind: outlier
+    label: unusual_querying
+    quota: 0.3
+    method: isolation_forest
+  - kind: diversity
+    label: querying_styles
+    quota: rest
