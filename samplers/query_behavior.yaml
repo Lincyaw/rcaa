@@ -7,7 +7,6 @@ strategies:
   - kind: outlier
     label: unusual_querying
     quota: 0.3
-    method: isolation_forest
   - kind: diversity
     label: querying_styles
     quota: rest
