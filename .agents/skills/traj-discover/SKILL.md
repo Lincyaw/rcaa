@@ -1,0 +1,1 @@
+../../../.claude/skills/traj-discover/SKILL.md

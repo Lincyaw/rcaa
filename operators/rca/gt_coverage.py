@@ -51,7 +51,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         for service in hit:
             windows[service].update(window for window, _ in call.telemetry)
     return {
-        "probed_gt_service_share": len(probed) / len(truth),
+        "probed_gt_service_share": len(probed) / len(truth) if truth else None,
         "gt_focused_query": focused,
         "gt_probe_share": on_truth / filtered if filtered else None,
         "gt_metric_probed": metric,

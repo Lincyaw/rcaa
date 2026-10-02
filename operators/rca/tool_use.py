@@ -50,7 +50,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     unrecovered = 0
     for failed in failed_queries:
         later = [c for c in queries if c.step.index > failed.step.index and c.files == failed.files]
-        unrecovered += not any(not c.failed for c in later)
+        unrecovered += not any(c.succeeded for c in later)
     seen: set[str] = set()
     duplicates = 0
     for query in queries:
@@ -64,7 +64,11 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         assert query.result is not None
         text = query.result.content.strip()
         if "limit" not in query.args and text.startswith("[") and not text.endswith(STORED_CUT_MARKER.strip()):
-            truncated += len(json.loads(text)) == 10
+            try:
+                result = json.loads(text)
+            except json.JSONDecodeError:
+                continue
+            truncated += isinstance(result, list) and len(result) == 10
     return {
         "n_turns": float(max(per_turn) + 1 if per_turn else 0),
         "max_calls_per_turn": float(max(per_turn.values()) if per_turn else 0),

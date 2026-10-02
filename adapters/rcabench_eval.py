@@ -4,6 +4,7 @@ import json
 import re
 import sqlite3
 from collections.abc import Iterator
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -45,21 +46,26 @@ class RcabenchEvalAdapter:
     """
 
     def __init__(self, experiments: list[str], models: list[str] | None = None, stage: str = "judged") -> None:
+        if not experiments:
+            raise ValueError("experiments must contain at least one experiment id")
+        if models is not None and not models:
+            raise ValueError("models must be omitted or contain at least one model name")
         self.experiments = experiments
         self.models = models
         self.stage = stage
 
     def read(self, path: Path, dataset: str) -> Iterator[Trajectory]:
-        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         model_filter = ""
         params: list[Any] = [self.stage, *self.experiments]
         if self.models is not None:
             model_filter = f"AND e.model_name IN ({','.join('?' * len(self.models))})"
             params += self.models
         query = QUERY.format(experiments=",".join("?" * len(self.experiments)), model_filter=model_filter)
-        for row in db.execute(query, params):
-            yield self._trajectory(row, dataset)
-        db.close()
+        # Keep the connection scoped to generator consumption, and close it even when parsing a row fails or the
+        # caller stops iteration early.
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as db:
+            for row in db.execute(query, params):
+                yield self._trajectory(row, dataset)
 
     def _trajectory(self, row: tuple[Any, ...], dataset: str) -> Trajectory:
         (exp_id, model, agent, index, source, time_cost, metrics_json, events_json, case_json,
@@ -121,7 +127,9 @@ class RcabenchEvalAdapter:
                         text += STORED_CUT_MARKER
                     add("tool", "tool_result", text, stamp, name=data["tool_name"], is_error=_is_error(text))
                 case "result":
-                    add("assistant", "message", data["final_output"], stamp, name=FINAL_ANSWER)
+                    output = data["final_output"]
+                    text = output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
+                    add("assistant", "message", text, stamp, name=FINAL_ANSWER)
                 case "run_complete":
                     metadata["elapsed_s"] = data["elapsed_s"]
                     metadata["total_steps"] = data["total_steps"]

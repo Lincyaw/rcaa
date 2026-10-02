@@ -131,12 +131,25 @@ Hide metadata an LLM must not see, such as evaluation results, with `render.hide
 
 ## 7. Extracting and checking
 
-1. `traj validate --instructions` shows the output schema and the instruction each call group sends.
+1. `traj operators show <operator>` shows an operator's parameters, outputs and guidance. `traj extract --group <group> --dry-run --limit 1` checks `traj.yaml`, every enabled operator and every sampler without writing feature rows or making an uncached LLM call.
 2. `traj extract --group <group> --limit 5`, or `--key <key>` for chosen trajectories, runs a small trial.
-3. `traj show <key>` prints each feature with its value and cited evidence.
-   Open the Markdown with `traj show <key> --cat` and check every value against the cited step.
+3. Read `.traj/features/<group>.parquet` to inspect values, statuses and evidence, and open `.traj/datasets/<dataset>/<id>.md` to check cited steps. This snippet prints one group's row for one key:
+
+   ```bash
+   GROUP=rca_extract KEY=ops-lite/example python - <<'PY'
+   import os
+   import pandas as pd
+
+   group = os.environ["GROUP"]
+   key = os.environ["KEY"]
+   rows = pd.read_parquet(f".traj/features/{group}.parquet")
+   print(rows.loc[rows["key"].eq(key)].to_string(index=False))
+   dataset, trajectory_id = key.split("/", 1)
+   print(f"trajectory: .traj/datasets/{dataset}/{trajectory_id}.md")
+   PY
+   ```
 4. When a value is wrong, first ask whether the question is atomic.
    A feature that is often wrong usually needs to be split into simpler features; rewording the same hard question rarely helps.
-   `traj agreement <reference.json>` measures this on many trajectories at once against answers from a careful reader; the `traj-discover` skill describes it.
+   Record careful-reader answers in JSON and compare them with the Parquet values; the `traj-discover` skill gives a script.
 5. `traj extract --dry-run` reports how many LLM calls a full run needs; answers already in the mailbox are reused.
-6. `traj extract` runs everything; `traj status` shows how many trajectories each group has rows for, by status.
+6. `traj extract` runs everything. Its JSON response includes `coverage`; require `missing: 0` for every group needed downstream and inspect nonzero `failed`, `refused` or `invalid_length` counts.

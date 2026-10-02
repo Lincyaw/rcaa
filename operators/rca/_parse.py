@@ -47,7 +47,13 @@ class Call:
     @property
     def files(self) -> str:
         files = self.args.get("parquet_files", "")
-        return files if isinstance(files, str) else json.dumps(files)
+        if isinstance(files, str):
+            return files
+        if isinstance(files, list) and all(isinstance(path, str) for path in files):
+            # File order does not affect a query. Canonicalizing it lets recovery analysis match retries that only
+            # reorder the same inputs.
+            return json.dumps(sorted(files), ensure_ascii=False)
+        return json.dumps(files, ensure_ascii=False, sort_keys=True)
 
     @property
     def failed(self) -> bool:
@@ -65,7 +71,8 @@ class Call:
     def telemetry(self) -> set[tuple[str, str]]:
         """(window, kind) of every telemetry file the query reads, from its SQL and its parquet_files argument."""
         given = self.args.get("parquet_files") or []
-        paths = files_read(self.tree) | set([given] if isinstance(given, str) else given)
+        supplied = [given] if isinstance(given, str) else given if isinstance(given, list) else []
+        paths = files_read(self.tree) | {path for path in supplied if isinstance(path, str)}
         found = set()
         for path in paths:
             window, _, kind = path.rsplit("/", 1)[-1].removesuffix(".parquet").partition("_")
@@ -83,12 +90,16 @@ def calls(trajectory: Trajectory) -> list[Call]:
     out: list[Call] = []
     pending: list[Call] = []
     turn = 0
-    previous_kind = None
+    result_since_assistant = False
     for step in trajectory.steps:
-        if step.role == "assistant" and previous_kind == "tool_result":
+        if step.role == "assistant" and result_since_assistant:
             turn += 1
+            result_since_assistant = False
         if step.kind == "tool_call":
-            call = Call(step=step, args=json.loads(step.content), turn=turn)
+            args = json.loads(step.content)
+            if not isinstance(args, dict):
+                raise ValueError(f"{trajectory.key} step #{step.index}: tool arguments must be a JSON object")
+            call = Call(step=step, args=args, turn=turn)
             out.append(call)
             pending.append(call)
         elif step.kind == "tool_result":
@@ -97,7 +108,7 @@ def calls(trajectory: Trajectory) -> list[Call]:
                 raise ValueError(f"{trajectory.key} step #{step.index}: result of {step.name} without a pending call")
             candidates[0].result = step
             pending.remove(candidates[0])
-        previous_kind = step.kind
+            result_since_assistant = True
     return out
 
 
@@ -295,7 +306,10 @@ def root_causes(answer: dict[str, Any]) -> list[dict[str, Any]]:
 
     A few submissions in ops-lite hold root causes without a service or as bare strings.
     """
-    return [rc for rc in answer.get("root_causes", []) if isinstance(rc, dict) and "service" in rc]
+    root_causes = answer.get("root_causes")
+    if not isinstance(root_causes, list):
+        return []
+    return [rc for rc in root_causes if isinstance(rc, dict) and rc.get("service") not in (None, "")]
 
 
 def submitted_services(answer: dict[str, Any]) -> set[str]:
@@ -303,4 +317,5 @@ def submitted_services(answer: dict[str, Any]) -> set[str]:
 
 
 def true_services(trajectory: Trajectory) -> list[str]:
-    return [service_key(s) for s in trajectory.metadata["rc_services"]]
+    services = trajectory.metadata.get("rc_services") or []
+    return [service_key(str(service)) for service in services if service not in (None, "")]
