@@ -8,4 +8,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-traj-analyzer = { path = "../traj-analyzer", editable = true }
+traj-analyzer = { git = "https://github.com/Lincyaw/traj-analyzer.git", rev = "3e79eb9394553db3e335ef7576a861ebbb47c794" }

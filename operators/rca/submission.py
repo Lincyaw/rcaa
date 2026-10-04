@@ -41,7 +41,7 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
     answer = submission(trajectory)
     assert answer is not None
     valid = root_causes(answer)
-    evidence = [item for rc in valid for item in rc.get("evidence", []) if isinstance(item, dict)]
+    evidence = [item for rc in valid for item in (rc.get("evidence") or []) if isinstance(item, dict)]
     queries = [c for c in calls(trajectory) if c.name == QUERY]
     executed = {normalize_sql(c.sql) for c in queries if c.succeeded}
     evidence_sql = [normalize_sql(str(item.get("sql", ""))) for item in evidence if item.get("sql")]
@@ -52,8 +52,10 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "n_root_causes": float(len(valid)),
         "root_cause_gap": float(len(truth) - len(valid)),
         "n_evidence": float(len(evidence)),
-        "evidence_kinds": sorted({str(item.get("kind")) for item in evidence}),
-        "submitted_fault_kinds": sorted({str(rc.get("fault_kind")) for rc in valid}),
+        "evidence_kinds": sorted({str(item["kind"]) for item in evidence if item.get("kind") not in (None, "")}),
+        "submitted_fault_kinds": sorted(
+            {str(rc["fault_kind"]) for rc in valid if rc.get("fault_kind") not in (None, "")}
+        ),
         "evidence_preexecuted_share": sum(s in executed for s in evidence_sql) / len(evidence_sql)
         if evidence_sql else None,
         "dropped_gt_service": bool((truth & probed) - submitted),

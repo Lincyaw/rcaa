@@ -1,17 +1,25 @@
 name: default
 budget: 30
 seed: 0
-features: all          # or a list of feature names, or {feature: weight}
+# Review investigation behaviour, not evaluator outcomes or ground truth. This keeps
+# the sample useful for qualitative error analysis without selecting on the answer.
+features:
+  n_turns: 1
+  n_queries: 1
+  query_error_rate: 1
+  unrecovered_error_rate: 1
+  duplicate_query_rate: 1
+  empty_result_rate: 1
+  baseline_query_ratio: 1
+  modality_query_share: 1
+  probed_service_count: 1
+  think_per_query: 1
+  forced_submission: 1
 strategies:
-  # Uncomment once the outcome group is extracted.
-  # - kind: target
-  #   label: frustrated
-  #   quota: 0.3
-  #   where: "user_frustration >= {user_frustration.high}"
-  #   within: diversity
   - kind: outlier
-    label: outlier
+    label: unusual_within_model
     quota: 0.3
+    relative_to: model
   - kind: diversity
-    label: diverse
+    label: representative_behaviour
     quota: rest

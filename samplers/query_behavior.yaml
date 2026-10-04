@@ -5,8 +5,9 @@ seed: 0
 features: [query_files, query_atoms, query_filter_values]
 strategies:
   - kind: outlier
-    label: unusual_querying
+    label: unusual_querying_within_model
     quota: 0.3
+    relative_to: model
   - kind: diversity
     label: querying_styles
     quota: rest

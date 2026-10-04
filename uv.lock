@@ -554,7 +554,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "sqlglot", specifier = ">=30.19.0" },
-    { name = "traj-analyzer", editable = "../traj-analyzer" },
+    { name = "traj-analyzer", git = "https://github.com/Lincyaw/traj-analyzer.git?rev=3e79eb9394553db3e335ef7576a861ebbb47c794" },
 ]
 
 [[package]]
@@ -762,7 +762,7 @@ wheels = [
 [[package]]
 name = "traj-analyzer"
 version = "0.1.0"
-source = { editable = "../traj-analyzer" }
+source = { git = "https://github.com/Lincyaw/traj-analyzer.git?rev=3e79eb9394553db3e335ef7576a861ebbb47c794#3e79eb9394553db3e335ef7576a861ebbb47c794" }
 dependencies = [
     { name = "aifn", extra = ["deepseek"] },
     { name = "duckdb" },
@@ -776,29 +776,6 @@ dependencies = [
     { name = "sqlglot" },
     { name = "typer" },
     { name = "uvicorn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aifn", extras = ["deepseek"], git = "https://github.com/Lincyaw/aifn" },
-    { name = "duckdb", specifier = ">=1.5.5" },
-    { name = "fastapi", specifier = ">=0.141.1" },
-    { name = "numpy", specifier = ">=2.5.3" },
-    { name = "pandas", specifier = ">=3.0.6" },
-    { name = "pyarrow", specifier = ">=25.0.1" },
-    { name = "pydantic", specifier = ">=2.13.5" },
-    { name = "ruamel-yaml", specifier = ">=0.19.1" },
-    { name = "scikit-learn", specifier = ">=1.9.1" },
-    { name = "sqlglot", specifier = ">=30.19" },
-    { name = "typer", specifier = ">=0.27.2" },
-    { name = "uvicorn", specifier = ">=0.54.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "ruff", specifier = ">=0.16.9" },
 ]
 
 [[package]]
