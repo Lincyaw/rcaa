@@ -13,9 +13,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
     return [
         FeatureSpec(name="think_per_query", type="scalar",
                     description="think_tool calls per query_parquet_files call; the prompt asks for one per query."),
-        FeatureSpec(name="think_distinct_ratio", type="scalar", range=(0, 1), thresholds={"low": 0.5},
-                    description="Distinct think_tool texts divided by think_tool calls; low values mean the agent "
-                                "repeated the same reasoning."),
         FeatureSpec(name="think_only_turn_share", type="scalar", range=(0, 1),
                     description="Share of turns whose calls are all think_tool: planning without acting."),
         FeatureSpec(name="forced_submission", type="boolean",
@@ -32,7 +29,6 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         turns[call.turn].append(call.name)
     return {
         "think_per_query": len(thinks) / len(queries) if queries else None,
-        "think_distinct_ratio": len({c.step.content for c in thinks}) / len(thinks) if thinks else None,
         "think_only_turn_share": sum(1 for names in turns.values() if set(names) == {"think_tool"}) / len(turns)
         if turns else None,
         "forced_submission": any(s.name == FORCE_SUBMIT for s in trajectory.steps),

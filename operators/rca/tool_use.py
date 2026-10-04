@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 from collections import Counter
 from typing import Any
 
 from traj_analyzer.operators.base import FeatureSpec, NoParams, Operator
 from traj_analyzer.schema import Trajectory
 
-from rca._parse import QUERY, STORED_CUT_MARKER, calls, error_kind, normalize_sql
+from rca._parse import QUERY, calls, error_kind, normalize_sql
 
 ERROR_LABELS = {
     "token_budget": "The result was larger than the token budget and was replaced by an error.",
@@ -35,9 +34,6 @@ def outputs(params: NoParams) -> list[FeatureSpec]:
                     description="Share of queries whose whitespace-normalized SQL repeats an earlier query."),
         FeatureSpec(name="empty_result_rate", type="scalar", range=(0, 1),
                     description="Share of successful queries that returned an empty list."),
-        FeatureSpec(name="silent_truncation_count", type="scalar",
-                    description="Successful queries without a limit argument that returned exactly 10 rows, the "
-                                "harness default, so the result was probably cut off."),
     ]
 
 
@@ -59,16 +55,6 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         seen.add(key)
     succeeded = [c for c in queries if c.succeeded]
     empty = sum(1 for c in succeeded if c.result is not None and c.result.content.strip() == "[]")
-    truncated = 0
-    for query in succeeded:
-        assert query.result is not None
-        text = query.result.content.strip()
-        if "limit" not in query.args and text.startswith("[") and not text.endswith(STORED_CUT_MARKER.strip()):
-            try:
-                result = json.loads(text)
-            except json.JSONDecodeError:
-                continue
-            truncated += isinstance(result, list) and len(result) == 10
     return {
         "n_turns": float(max(per_turn) + 1 if per_turn else 0),
         "max_calls_per_turn": float(max(per_turn.values()) if per_turn else 0),
@@ -78,13 +64,12 @@ def compute(trajectory: Trajectory, params: NoParams) -> dict[str, Any]:
         "unrecovered_error_rate": unrecovered / len(failed_queries) if failed_queries else None,
         "duplicate_query_rate": duplicates / len(queries) if queries else None,
         "empty_result_rate": empty / len(succeeded) if succeeded else None,
-        "silent_truncation_count": float(truncated),
     }
 
 
 OPERATOR = Operator(
     kind="code",
-    description="How fluently the agent used the RCABench tools: turns, parallelism, errors, repeats and truncation.",
+    description="How fluently the agent used the RCABench tools: turns, parallelism, errors, repeats and empty results.",
     tags=("agent", "rca"),
     outputs=outputs,
     compute=compute,
