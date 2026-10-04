@@ -11,3 +11,5 @@
         models:
           - id: DeepSeek-V4-flash
             contextWindow: 262144
+          - id: DeepSeek-V4-pro
+            contextWindow: 262144

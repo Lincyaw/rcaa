@@ -773,6 +773,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "ruamel-yaml" },
     { name = "scikit-learn" },
+    { name = "sqlglot" },
     { name = "typer" },
     { name = "uvicorn" },
 ]
@@ -788,6 +789,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "ruamel-yaml", specifier = ">=0.19.1" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
+    { name = "sqlglot", specifier = ">=30.19" },
     { name = "typer", specifier = ">=0.27.2" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]

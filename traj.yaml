@@ -66,6 +66,8 @@ operators:
   - use: rca.gt_coverage
 
   - use: rca.sql_shape
+  - use: rca.query_paths
+  - use: rca.query_process
 calls:
   rca_extract:
     evidence: true
@@ -91,3 +93,7 @@ extract:
 
 sampling:
   vector_length: 10
+
+# `traj evaluate` measures LLM features a second time with this model.
+evaluation:
+  model: DeepSeek-V4-pro
